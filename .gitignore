@@ -1,0 +1,12 @@
+.next/
+node_modules/
+.tmp/
+_backup*/
+.vercel/
+supabase/.temp/
+.env.local
+.env*.local
+*.tsbuildinfo
+*.bak-*
+docs/*backup*
+npm-debug.log*
