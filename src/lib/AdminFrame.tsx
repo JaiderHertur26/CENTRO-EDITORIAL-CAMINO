@@ -55,7 +55,7 @@ export default function AdminFrame({
     <div className="admin-shell">
       <aside className="admin-sidebar">
         <Link className="brand" href="/admin">
-          <span className="brand-cross">✠</span>
+          <img className="brand-cross" src="/centro-editorial-icon.svg?v=20260921" alt="" aria-hidden="true" />
           <span>
             <strong>CAMINO</strong>
             <small>Centro Editorial</small>
