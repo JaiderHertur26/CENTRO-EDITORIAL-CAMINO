@@ -10,3 +10,6 @@ supabase/.temp/
 *.bak-*
 docs/*backup*
 npm-debug.log*
+
+.vercel
+.env*
