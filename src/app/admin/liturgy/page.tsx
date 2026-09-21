@@ -23,8 +23,6 @@ function emptyForm() {
     first_ref: '', first_title: '', first_text: '',
     first_alt_ref: '', first_alt_title: '', first_alt_text: '',
     psalm_ref: '', psalm_liturgical_ref: '', psalm_response: '',
-    psalm_s1_ref: '', psalm_s1: '', psalm_s2_ref: '', psalm_s2: '',
-    psalm_s3_ref: '', psalm_s3: '', psalm_s4_ref: '', psalm_s4: '',
     second_ref: '', second_title: '', second_text: '',
     acclamation_ref: '', acclamation_text: '',
     gospel_ref: '', gospel_title: '', gospel_text: '',
@@ -32,12 +30,18 @@ function emptyForm() {
   };
 }
 type Form = ReturnType<typeof emptyForm>;
+type PsalmStropheDraft = {
+  reference: string;
+  text: string;
+};
+const emptyPsalmStrophe = (): PsalmStropheDraft => ({ reference: '', text: '' });
 
 export default function Page() {
   const [date, setDate] = useState(today());
   const [row, setRow] = useState<AnyObj | null>(null);
   const [day, setDay] = useState<AnyObj | null>(null);
   const [form, setForm] = useState<Form>(emptyForm());
+  const [psalmStrophes, setPsalmStrophes] = useState<PsalmStropheDraft[]>([emptyPsalmStrophe()]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [creatingNew, setCreatingNew] = useState(false);
@@ -67,6 +71,7 @@ export default function Page() {
 
     if (!currentRow) {
       setForm(emptyForm());
+      setPsalmStrophes([emptyPsalmStrophe()]);
       setMsg('No existe daily_readings para esta fecha.');
       setLoading(false);
       return;
@@ -87,13 +92,6 @@ export default function Page() {
       psalm_ref: clean(currentRow.psalm_ref),
       psalm_liturgical_ref: clean(psalm.liturgical_ref || currentRow.psalm_liturgical_ref),
       psalm_response: clean(psalm.response || currentRow.psalm_response),
-      psalm_s1_ref: clean(strophes[0]?.reference),
-      psalm_s1: clean(strophes[0]?.text),
-      psalm_s2_ref: clean(strophes[1]?.reference),
-      psalm_s2: clean(strophes[1]?.text),      psalm_s3_ref: clean(strophes[2]?.reference),
-      psalm_s3: clean(strophes[2]?.text),
-      psalm_s4_ref: clean(strophes[3]?.reference),
-      psalm_s4: clean(strophes[3]?.text),
       second_ref: clean(currentRow.second_reading_ref),
       second_title: clean(editorial.second_reading?.title),
       second_text: clean(editorial.second_reading?.text),
@@ -107,6 +105,20 @@ export default function Page() {
       gospel_alt_text: clean(editorial.gospel_alternate?.text),
     });
 
+    const normalizedStrophes = strophes
+      .map((item: AnyObj, index: number) => ({
+        order: Number.isFinite(Number(item?.order)) ? Number(item.order) : index + 1,
+        reference: clean(item?.reference),
+        text: clean(item?.text),
+      }))
+      .filter((item: { text: string }) => item.text.trim())
+      .sort((a: { order: number }, b: { order: number }) => a.order - b.order)
+      .map((item: { reference: string; text: string }) => ({
+        reference: item.reference,
+        text: item.text,
+      }));
+    setPsalmStrophes(normalizedStrophes.length ? normalizedStrophes : [emptyPsalmStrophe()]);
+
     setLoading(false);
   }
 
@@ -118,11 +130,31 @@ export default function Page() {
     event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => setForm((current) => ({ ...current, [key]: event.target.value }));
 
+  const setPsalmStropheField = (
+    index: number,
+    key: keyof PsalmStropheDraft,
+    value: string,
+  ) => setPsalmStrophes((current) =>
+    current.map((item, itemIndex) =>
+      itemIndex === index ? { ...item, [key]: value } : item
+    )
+  );
+
+  const addPsalmStrophe = () =>
+    setPsalmStrophes((current) => [...current, emptyPsalmStrophe()]);
+
+  const removePsalmStrophe = (index: number) =>
+    setPsalmStrophes((current) => {
+      const next = current.filter((_, itemIndex) => itemIndex !== index);
+      return next.length ? next : [emptyPsalmStrophe()];
+    });
+
   const required = useMemo(() => Boolean(
     form.first_ref && form.first_text &&
-    form.psalm_ref && form.psalm_response && form.psalm_s1 &&
+    form.psalm_ref && form.psalm_response &&
+    psalmStrophes.some((item) => item.text.trim()) &&
     form.gospel_ref && form.gospel_text
-  ), [form]);
+  ), [form, psalmStrophes]);
   async function save() {
     if (!row && !creatingNew) return;
     if (creatingNew && !required) {
@@ -136,17 +168,12 @@ export default function Page() {
     setErr(false);
 
     const oldNotes = (row?.reading_notes ?? {}) as AnyObj;
-    const strophes = [
-      [form.psalm_s1_ref, form.psalm_s1],
-      [form.psalm_s2_ref, form.psalm_s2],
-      [form.psalm_s3_ref, form.psalm_s3],
-      [form.psalm_s4_ref, form.psalm_s4],
-    ]
-      .filter((item) => item[1].trim())
+    const strophes = psalmStrophes
+      .filter((item) => item.text.trim())
       .map((item, index) => ({
         order: index + 1,
-        reference: item[0].trim() || null,
-        text: item[1].trim(),
+        reference: item.reference.trim() || null,
+        text: item.text.trim(),
         text_source: 'document',
       }));
 
@@ -340,12 +367,7 @@ export default function Page() {
 
   const status = String(row?.review_status ?? 'draft');
   const published = status === 'published' || Boolean(row?.published_at);
-  const stropheCount = [
-    form.psalm_s1,
-    form.psalm_s2,
-    form.psalm_s3,
-    form.psalm_s4,
-  ].filter((item) => item.trim()).length;
+  const stropheCount = psalmStrophes.filter((item) => item.text.trim()).length;
   return (
     <AdminFrame
       title="Liturgia diaria"
@@ -395,7 +417,7 @@ export default function Page() {
             <span>✠</span>
             <strong>No hay lectura editorial para esta fecha</strong>
             <p>La tabla daily_readings no contiene un registro editable para {date}.</p>
-            <button className="btn-primary" type="button" onClick={() => { setCreatingNew(true); setForm(emptyForm()); setMsg('Nueva fecha preparada localmente. Completa el contenido obligatorio antes de guardarla.'); setErr(false); }}>
+            <button className="btn-primary" type="button" onClick={() => { setCreatingNew(true); setForm(emptyForm()); setPsalmStrophes([emptyPsalmStrophe()]); setMsg('Nueva fecha preparada localmente. Completa el contenido obligatorio antes de guardarla.'); setErr(false); }}>
               + Preparar lecturas para esta fecha
             </button>
           </div>
@@ -446,14 +468,62 @@ export default function Page() {
                   <small className="field-help">Debe coincidir con la versión editorial publicada para esta fecha.</small>
                   <textarea className="textarea psalm-response-input" rows={2} value={form.psalm_response} onChange={setField('psalm_response')} />
                 </div>
-                <Field label="Estrofa 1 · cita" k="psalm_s1_ref" />
-                <Field label="Estrofa 1 *" k="psalm_s1" type="textarea" />
-                <Field label="Estrofa 2 · cita" k="psalm_s2_ref" />
-                <Field label="Estrofa 2" k="psalm_s2" type="textarea" />
-                <Field label="Estrofa 3 · cita" k="psalm_s3_ref" />
-                <Field label="Estrofa 3" k="psalm_s3" type="textarea" />
-                <Field label="Estrofa 4 · cita (si aplica)" k="psalm_s4_ref" />
-                <Field label="Estrofa 4 (si aplica)" k="psalm_s4" type="textarea" />
+                <div className="psalm-strophe-editor">
+                  <div className="psalm-strophe-toolbar">
+                    <div>
+                      <strong>Estrofas del Salmo</strong>
+                      <small>Agrega exactamente las estrofas que correspondan a la liturgia del día. No hay límite fijo.</small>
+                    </div>
+                    <button className="btn" type="button" onClick={addPsalmStrophe}>
+                      + Agregar estrofa
+                    </button>
+                  </div>
+
+                  <div className="psalm-strophe-list">
+                    {psalmStrophes.map((strophe, index) => (
+                      <div className="psalm-strophe-card" key={'psalm-strophe-editor-' + index}>
+                        <div className="psalm-strophe-card-head">
+                          <strong>Estrofa {index + 1}</strong>
+                          {psalmStrophes.length > 1 ? (
+                            <button
+                              className="btn psalm-strophe-remove"
+                              type="button"
+                              onClick={() => removePsalmStrophe(index)}
+                              aria-label={'Eliminar estrofa ' + (index + 1)}
+                            >
+                              Eliminar
+                            </button>
+                          ) : null}
+                        </div>
+                        <div className="form-grid">
+                          <label className="form-field">
+                            <span className="form-label">Estrofa {index + 1} · cita</span>
+                            <input
+                              className="input"
+                              value={strophe.reference}
+                              onChange={(event) => setPsalmStropheField(index, 'reference', event.target.value)}
+                            />
+                          </label>
+                          <label className="form-field">
+                            <span className="form-label">
+                              Estrofa {index + 1}{index === 0 ? ' *' : ''}
+                            </span>
+                            <textarea
+                              className="textarea"
+                              rows={6}
+                              value={strophe.text}
+                              onChange={(event) => setPsalmStropheField(index, 'text', event.target.value)}
+                            />
+                          </label>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <button className="btn psalm-strophe-add-bottom" type="button" onClick={addPsalmStrophe}>
+                    + Agregar otra estrofa
+                  </button>
+                </div>
               </EditorSection>
 
               <EditorSection

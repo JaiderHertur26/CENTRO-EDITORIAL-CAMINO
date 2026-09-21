@@ -2276,3 +2276,75 @@ button.btn-primary:hover {
   font-style: normal;
   line-height: 1.5;
 }
+
+/* Salmo responsorial · estrofas dinámicas */
+.psalm-strophe-editor {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 14px;
+  margin-top: 2px;
+}
+.psalm-strophe-toolbar,
+.psalm-strophe-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+.psalm-strophe-toolbar {
+  padding: 13px 14px;
+  border: 1px solid #e0e7ed;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #f8fbfd, #fff);
+}
+.psalm-strophe-toolbar > div {
+  display: grid;
+  gap: 3px;
+}
+.psalm-strophe-toolbar strong,
+.psalm-strophe-card-head strong {
+  color: var(--camino-admin-heading);
+}
+.psalm-strophe-toolbar small {
+  color: var(--camino-admin-muted);
+  font-size: 10px;
+}
+.psalm-strophe-list {
+  display: grid;
+  gap: 12px;
+}
+.psalm-strophe-card {
+  padding: 15px;
+  border: 1px solid var(--camino-admin-line);
+  border-radius: 15px;
+  background: #fff;
+  box-shadow: 0 5px 16px rgba(23,50,77,.03);
+}
+.psalm-strophe-card-head {
+  margin-bottom: 12px;
+}
+.psalm-strophe-card-head strong {
+  font-family: var(--camino-admin-serif);
+  font-size: 17px;
+  font-weight: 600;
+}
+.psalm-strophe-remove {
+  min-height: 31px !important;
+  padding: 5px 9px !important;
+  color: #9a4d45 !important;
+  font-size: 9px;
+}
+.psalm-strophe-add-bottom {
+  justify-self: start;
+}
+@media (max-width: 700px) {
+  .psalm-strophe-toolbar,
+  .psalm-strophe-card-head {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .psalm-strophe-toolbar .btn,
+  .psalm-strophe-card-head .btn {
+    width: 100%;
+  }
+}
